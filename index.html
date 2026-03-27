@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RISC-V Bingo Quiz</title>
+<style>
+:root {
+  --bg:     #0d0d0d;
+  --bg2:    #111;
+  --bg3:    #1a1a1a;
+  --border: #2a2a2a;
+  --yellow: #ffe000;
+  --green:  #00ff88;
+  --cyan:   #00cfff;
+  --red:    #ff4444;
+  --orange: #ff9900;
+  --dim:    #555;
+  --text:   #ccc;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  background:var(--bg);color:var(--text);
+  font-family:'Courier New',monospace;
+  min-height:100vh;
+}
+body{
+  display:flex;flex-direction:column;
+  align-items:center;padding:14px 10px 60px;
+}
+
+/* ── masthead ── */
+#masthead{
+  text-align:center;margin-bottom:18px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:14px;width:100%;max-width:800px;
+}
+#masthead h1{
+  font-size:clamp(1em,3.5vw,1.5em);
+  color:var(--yellow);letter-spacing:2px;
+}
+#masthead .sub{font-size:0.7em;color:var(--dim);letter-spacing:3px;margin-top:4px;}
+
+/* ── idle ── */
+#idle{
+  display:flex;flex-direction:column;
+  align-items:center;gap:16px;margin-top:30px;
+}
+#idle p{
+  font-size:0.82em;color:var(--dim);
+  text-align:center;max-width:420px;line-height:1.8;
+}
+.funbtn{
+  font-family:'Courier New',monospace;
+  font-weight:bold;letter-spacing:3px;
+  cursor:pointer;border-radius:4px;
+  border:2px solid;transition:background 0.1s;
+}
+#btn-play{
+  background:#001a00;border-color:var(--green);
+  color:var(--green);font-size:1.3em;padding:16px 44px;
+}
+#btn-play:hover{background:#002800;}
+#btn-lb{
+  background:#000;border-color:var(--dim);
+  color:var(--dim);font-size:0.9em;padding:10px 30px;
+}
+#btn-lb:hover{border-color:var(--cyan);color:var(--cyan);}
+#btn-bingo{
+  background:#000;border-color:#222;color:#444;
+  font-size:0.75em;padding:8px 20px;
+}
+#btn-bingo:hover{color:var(--dim);border-color:var(--dim);}
+
+/* ── game ── */
+#game{display:none;width:100%;max-width:800px;}
+
+/* target — no nowrap, allows 2-line real instructions */
+#target-wrap{
+  text-align:center;margin-bottom:12px;
+  padding:12px 10px;
+  background:var(--bg2);border:2px solid var(--yellow);
+  border-radius:5px;
+}
+#target-label{
+  font-size:0.62em;color:var(--dim);
+  letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;
+}
+#target{
+  font-size:clamp(1.1em,4vw,2.4em);
+  color:var(--yellow);font-weight:bold;
+  letter-spacing:1px;line-height:1.35;
+}
+
+/* hud */
+#hud{
+  display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:8px;
+  font-size:0.75em;color:var(--dim);letter-spacing:2px;
+  flex-wrap:wrap;gap:4px;
+}
+#hud .hud-score{color:var(--green);}
+#hud .hud-timer{color:var(--cyan);}
+#hud .hud-wrong{color:var(--red);}
+
+/* wrong dots */
+#wrong-dots{display:flex;gap:6px;justify-content:center;margin-bottom:8px;}
+.wdot{
+  width:11px;height:11px;border-radius:50%;
+  border:1px solid var(--dim);background:transparent;
+  transition:background 0.2s;
+}
+.wdot.hit{background:var(--red);border-color:var(--red);}
+
+/* skip */
+#btn-skip{
+  display:block;margin:0 auto 10px;
+  background:none;border:1px solid var(--border);
+  color:var(--dim);font-family:'Courier New',monospace;
+  font-size:0.72em;letter-spacing:2px;
+  padding:4px 16px;cursor:pointer;border-radius:3px;
+}
+#btn-skip:hover{border-color:var(--orange);color:var(--orange);}
+
+/* decorative column labels */
+#col-labels{
+  display:flex;justify-content:center;
+  gap:8px;margin-bottom:8px;
+}
+#col-labels span{
+  font-size:clamp(0.9em,2.5vw,1.3em);
+  font-weight:bold;color:var(--yellow);
+  opacity:0.4;letter-spacing:2px;
+  min-width:36px;text-align:center;
+}
+
+/* ── FRIDGE MAGNET BOARD ── */
+#magnet-board{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+  padding:2px 0;
+}
+
+.magnet{
+  background:var(--bg2);
+  border:1px solid #555;
+  border-radius:5px;
+  padding:8px 10px;
+  font-size:clamp(0.82em,2.5vw,1.05em);
+  line-height:1.35;
+  text-align:center;
+  cursor:pointer;
+  color:#eee;
+  min-width:58px;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:border-color 0.12s,color 0.12s,background 0.12s;
+}
+@media(hover:hover){
+  .magnet:hover{
+    border-color:var(--yellow);color:var(--yellow);background:#1a1a00;
+  }
+}
+.magnet:active{background:#2a2a00;border-color:var(--yellow);color:var(--yellow);}
+
+/* correct — green pulse glow */
+@keyframes correct-pulse{
+  0%  {background:#004400;border-color:var(--green);box-shadow:0 0 14px var(--green);}
+  60% {background:#002200;border-color:#005500;box-shadow:0 0 5px #005500;}
+  100%{background:#001a00;border-color:#004400;box-shadow:none;}
+}
+.magnet.correct{
+  animation:correct-pulse 0.6s ease-out forwards;
+  color:var(--green);cursor:default;pointer-events:none;
+}
+
+/* wrong — red shake */
+@keyframes wrong-shake{
+  0%  {transform:translateX(0);  background:#330000;border-color:var(--red);}
+  20% {transform:translateX(-5px);background:#440000;}
+  40% {transform:translateX(5px); background:#440000;}
+  60% {transform:translateX(-3px);background:#330000;}
+  80% {transform:translateX(3px); background:#330000;}
+  100%{transform:translateX(0);  background:var(--bg2);border-color:var(--border);}
+}
+.magnet.wrong-flash{
+  animation:wrong-shake 0.38s ease-out forwards;
+  color:var(--red);
+}
+
+/* skipped */
+.magnet.skipped{
+  color:var(--dim);border-color:#1a1a1a;background:#0a0a0a;
+  cursor:default;pointer-events:none;
+  text-decoration:line-through;font-size:0.62em;
+  white-space:pre-line;
+}
+
+/* ── TILT ── */
+@keyframes tilt-flash{
+  0%,100%{opacity:1;}50%{opacity:0.2;}
+}
+#tilt-overlay{
+  display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(255,50,0,0.18);z-index:100;pointer-events:none;
+  animation:tilt-flash 0.25s ease-in-out 4;
+}
+#tilt-banner{
+  display:none;
+  background:#2a0000;border:2px solid var(--red);border-radius:5px;
+  color:var(--red);font-size:clamp(0.85em,2.5vw,1.1em);
+  font-weight:bold;letter-spacing:3px;text-align:center;
+  padding:9px 16px;margin-bottom:10px;
+  animation:tilt-flash 0.4s ease-in-out 4;
+}
+
+/* ── end screen ── */
+#endscreen{
+  display:none;text-align:center;
+  max-width:480px;width:100%;margin-top:20px;
+}
+#endscreen h2{
+  color:var(--yellow);font-size:1.3em;
+  letter-spacing:3px;margin-bottom:18px;
+}
+#score-table{
+  width:100%;border-collapse:collapse;
+  font-size:0.85em;margin-bottom:20px;
+}
+#score-table td{padding:8px 12px;border-bottom:1px solid var(--border);}
+#score-table td:first-child{color:var(--dim);text-align:left;}
+#score-table td:last-child{color:var(--green);text-align:right;font-weight:bold;}
+#tilt-score-note{
+  color:var(--orange);font-size:0.75em;letter-spacing:2px;
+  margin-bottom:12px;display:none;
+}
+#name-wrap{margin-bottom:16px;}
+#name-wrap label{
+  display:block;font-size:0.7em;color:var(--dim);
+  letter-spacing:3px;margin-bottom:8px;
+}
+#name-input{
+  background:#000;border:2px solid var(--yellow);
+  color:var(--yellow);font-family:'Courier New',monospace;
+  font-size:2em;font-weight:bold;letter-spacing:8px;
+  text-align:center;width:120px;padding:8px;
+  text-transform:uppercase;border-radius:3px;
+}
+#btn-submit{
+  background:#001a00;border:2px solid var(--green);
+  color:var(--green);font-family:'Courier New',monospace;
+  font-size:1em;font-weight:bold;letter-spacing:3px;
+  padding:12px 36px;cursor:pointer;border-radius:4px;margin-bottom:10px;
+}
+#btn-submit:hover{background:#002800;}
+#btn-submit:disabled{opacity:0.4;cursor:default;}
+#submit-msg{font-size:0.8em;color:var(--dim);margin-bottom:14px;min-height:1.2em;}
+#btn-again{
+  background:none;border:1px solid var(--border);color:var(--dim);
+  font-family:'Courier New',monospace;font-size:0.8em;letter-spacing:2px;
+  padding:8px 24px;cursor:pointer;border-radius:3px;
+}
+#btn-again:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* ── leaderboard ── */
+#lbscreen{display:none;max-width:540px;width:100%;margin-top:20px;}
+#lbscreen h2{
+  color:var(--yellow);font-size:1.1em;letter-spacing:4px;
+  text-align:center;margin-bottom:16px;
+  border-bottom:1px solid var(--border);padding-bottom:10px;
+}
+#lb-table{width:100%;border-collapse:collapse;font-size:0.82em;}
+#lb-table th{
+  color:var(--dim);letter-spacing:2px;font-size:0.7em;
+  text-transform:uppercase;padding:6px 8px;
+  border-bottom:1px solid var(--border);text-align:left;
+}
+#lb-table td{padding:7px 8px;border-bottom:1px solid #1a1a1a;}
+#lb-table tr:first-child td{color:var(--yellow);}
+.lb-rank{color:var(--dim);text-align:center;}
+.lb-name{color:var(--cyan);font-weight:bold;letter-spacing:2px;}
+.lb-score{color:var(--green);text-align:right;}
+.lb-acc{color:var(--dim);text-align:right;}
+.lb-date{color:#333;font-size:0.85em;}
+.lb-tilt{color:var(--orange);font-size:0.7em;letter-spacing:1px;}
+#lb-msg{text-align:center;color:var(--dim);font-size:0.8em;padding:20px;}
+#btn-lb-back{
+  display:block;margin:18px auto 0;
+  background:none;border:1px solid var(--border);color:var(--dim);
+  font-family:'Courier New',monospace;font-size:0.75em;letter-spacing:2px;
+  padding:7px 22px;cursor:pointer;border-radius:3px;
+}
+#btn-lb-back:hover{border-color:var(--yellow);color:var(--yellow);}
+</style>
+</head>
+<body>
+
+<div id="tilt-overlay"></div>
+
+<div id="masthead">
+  <h1>RISC&#8209;V PSEUDOINSTRUCTION QUIZ</h1>
+  <div class="sub">WORLD RISC&#8209;V DAYS &mdash; SAN JOSE &mdash; FEB 2025</div>
+</div>
+
+<!-- ══ IDLE ══ -->
+<div id="idle">
+  <p>
+    A real instruction appears at top.<br>
+    Touch its pseudoinstruction on the board.<br>
+    3 wrong on one tile&nbsp;=&nbsp;skip &mdash; timer runs &mdash; best score wins.
+  </p>
+  <button class="funbtn" id="btn-play"  onclick="startGame()">&#9654;&nbsp;PLAY</button>
+  <button class="funbtn" id="btn-lb"    onclick="showLB()">LEADERBOARD</button>
+  <button class="funbtn" id="btn-bingo" onclick="window.location='bingo.html'">&#9646;&nbsp;BINGO CALLER</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game">
+  <div id="tilt-banner">&#9888;&nbsp;TILT!&nbsp;&#9888;&nbsp;SUSPICIOUS SPEED DETECTED</div>
+
+  <div id="target-wrap">
+    <div id="target-label">FIND THE PSEUDOINSTRUCTION FOR:</div>
+    <div id="target">—</div>
+  </div>
+
+  <div id="hud">
+    <span class="hud-score">SCORE:&nbsp;<span id="h-score">0</span></span>
+    <span><span id="h-done">0</span>/30</span>
+    <span class="hud-timer"><span id="h-time">0:00</span></span>
+    <span class="hud-wrong">WRONG:&nbsp;<span id="h-wrong">0</span></span>
+  </div>
+
+  <div id="wrong-dots">
+    <div class="wdot" id="wd0"></div>
+    <div class="wdot" id="wd1"></div>
+    <div class="wdot" id="wd2"></div>
+  </div>
+
+  <button id="btn-skip" onclick="skipTile()">SKIP &#9654;</button>
+
+  <div id="col-labels">
+    <span>R</span><span>I</span><span>S</span>
+    <span>B</span><span>U</span><span>J</span>
+  </div>
+
+  <div id="magnet-board"></div>
+</div>
+
+<!-- ══ END ══ -->
+<div id="endscreen">
+  <h2>&#9646;&nbsp;GAME OVER&nbsp;&#9646;</h2>
+  <table id="score-table">
+    <tr><td>SCORE</td>        <td id="e-score">—</td></tr>
+    <tr><td>TIME</td>         <td id="e-time">—</td></tr>
+    <tr><td>CORRECT</td>      <td id="e-correct">—</td></tr>
+    <tr><td>WRONG GUESSES</td><td id="e-wrong">—</td></tr>
+    <tr><td>SKIPPED</td>      <td id="e-skipped">—</td></tr>
+    <tr><td>ACCURACY</td>     <td id="e-acc">—</td></tr>
+  </table>
+  <div id="tilt-score-note">&#9888;&nbsp;TILT FLAG &mdash; SCORE PENALIZED 20%</div>
+  <div id="name-wrap">
+    <label>ENTER YOUR 3-LETTER HANDLE</label>
+    <input id="name-input" type="text" maxlength="3"
+           placeholder="AAA" autocomplete="off" spellcheck="false"
+           oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
+  </div>
+  <button id="btn-submit" onclick="submitScore()">SUBMIT SCORE</button>
+  <div id="submit-msg"></div>
+  <button id="btn-again" onclick="resetToIdle()">PLAY AGAIN</button>
+</div>
+
+<!-- ══ LEADERBOARD ══ -->
+<div id="lbscreen">
+  <h2>&#9646;&nbsp;LEADERBOARD &mdash; PERSONAL BEST&nbsp;&#9646;</h2>
+  <div id="lb-msg">Loading...</div>
+  <table id="lb-table" style="display:none">
+    <thead><tr>
+      <th class="lb-rank">#</th>
+      <th>NAME</th>
+      <th style="text-align:right">SCORE</th>
+      <th style="text-align:right">ACC%</th>
+      <th>DATE</th>
+    </tr></thead>
+    <tbody id="lb-body"></tbody>
+  </table>
+  <button id="btn-lb-back" onclick="showIdle()">&#9664;&nbsp;BACK</button>
+</div>
+
+<script>
+/* ── data ── */
+var INS = [
+  ["nop",               "addi x0, x0, 0"],
+  ["neg rd, rs",        "sub rd, x0, rs"],
+  ["negw rd, rs",       "subw rd, x0, rs"],
+  ["snez rd, rs",       "sltu rd, x0, rs"],
+  ["sltz rd, rs",       "slt rd, rs, x0"],
+  ["sgtz rd, rs",       "slt rd, x0, rs"],
+  ["beqz rs, offs",     "beq rs, x0, offs"],
+  ["bnez rs, offs",     "bne rs, x0, offs"],
+  ["blez rs, offs",     "bge x0, rs, offs"],
+  ["bgez rs, offs",     "bge rs, x0, offs"],
+  ["bltz rs, offs",     "blt rs, x0, offs"],
+  ["bgtz rs, offs",     "blt x0, rs, offs"],
+  ["j offs",            "jal x0, offs"],
+  ["jr rs",             "jalr x0, rs, 0"],
+  ["ret",               "jalr x0, x1, 0"],
+  ["tail offs",         "auipc x6, offs[31:12]\njalr x0, x6, offs[11:0]"],
+  ["li rd, 42",         "lui rd, 0\naddi rd, x0, 42"],
+  ["mv rd, rs",         "addi rd, rs, 0"],
+  ["not rd, rs",        "xori rd, rs, -1"],
+  ["sext.w rd, rs",     "addiw rd, rs, 0"],
+  ["seqz rd, rs",       "sltiu rd, rs, 1"],
+  ["bgt rs, rt, offs",  "blt rt, rs, offs"],
+  ["ble rs, rt, offs",  "bge rt, rs, offs"],
+  ["bgtu rs,rt,offs",   "bltu rt, rs, offs"],
+  ["bleu rs,rt,offs",   "bgeu rt, rs, offs"],
+  ["jal offs",          "jal x1, offs"],
+  ["jalr rs",           "jalr x1, rs, 0"],
+  ["call offs",         "auipc x1, offs[31:12]\njalr x1, x1, offs[11:0]"],
+  ["la rd, offs",       "auipc rd, offs[31:12]\nlw rd, offs[11:0](rd)"],
+  ["lla rd, offs",      "auipc rd, offs[31:12]\naddi rd, rd, offs[11:0]"]
+];
+
+/* ── state ── */
+var order=[], cellMap={}, tileIdx=0, wrongCount=0, totalWrong=0,
+    totalCorrect=0, totalSkipped=0, score=0,
+    timerID=null, startTime=0, tileStart=0,
+    finalTime=0, finalScore=0,
+    fastStreak=0, tiltTriggered=false;
+
+var TILT_MS     = 900;  /* sub-900ms correct = fast */
+var TILT_STREAK = 3;    /* 3 consecutive = TILT     */
+
+/* ── helpers ── */
+function shuffle(a){
+  var b=a.slice();
+  for(var i=b.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var t=b[i];b[i]=b[j];b[j]=t;
+  }
+  return b;
+}
+function fmt(s){
+  var m=Math.floor(s/60),sc=s%60;
+  return m+':'+(sc<10?'0':'')+sc;
+}
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+
+/* ── screens ── */
+function showIdle(){ hide('game');hide('endscreen');hide('lbscreen');show('idle'); }
+function showLB(){   hide('idle');hide('game');hide('endscreen');show('lbscreen');loadLB(); }
+function resetToIdle(){ clearInterval(timerID);showIdle(); }
+
+/* ── board ── */
+function buildBoard(){
+  var idxs=shuffle([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
+                    15,16,17,18,19,20,21,22,23,24,25,26,27,28,29]);
+  var board=document.getElementById('magnet-board');
+  board.innerHTML='';
+  cellMap={};
+  for(var i=0;i<idxs.length;i++){
+    var idx=idxs[i];
+    var el=document.createElement('div');
+    el.className='magnet';
+    el.dataset.idx=idx;
+    el.textContent=INS[idx][0];
+    el.onclick=cellClick;
+    board.appendChild(el);
+    cellMap[idx]=el;
+  }
+}
+
+/* ── start ── */
+function startGame(){
+  hide('idle');
+  order=shuffle([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
+                 15,16,17,18,19,20,21,22,23,24,25,26,27,28,29]);
+  tileIdx=0;wrongCount=0;totalWrong=0;
+  totalCorrect=0;totalSkipped=0;score=0;
+  fastStreak=0;tiltTriggered=false;
+  buildBoard();
+  hide('tilt-banner');
+  show('game');
+  startTime=Date.now();tileStart=startTime;
+  timerID=setInterval(tick,1000);
+  setTarget();
+}
+
+function tick(){
+  var e=Math.floor((Date.now()-startTime)/1000);
+  document.getElementById('h-time').textContent=fmt(e);
+}
+
+function setTarget(){
+  if(tileIdx>=order.length){endGame();return;}
+  wrongCount=0;updateWrongDots();
+  var ins=INS[order[tileIdx]];
+  var parts=ins[1].split('\n');
+  var tgt=document.getElementById('target');
+  tgt.innerHTML='';
+  for(var i=0;i<parts.length;i++){
+    if(i>0) tgt.appendChild(document.createElement('br'));
+    tgt.appendChild(document.createTextNode(parts[i]));
+  }
+  tileStart=Date.now();
+  document.getElementById('h-done').textContent=tileIdx;
+}
+
+function updateWrongDots(){
+  for(var i=0;i<3;i++){
+    var d=document.getElementById('wd'+i);
+    d.className='wdot'+(i<wrongCount?' hit':'');
+  }
+}
+
+/* ── tilt ── */
+function checkTilt(ms){
+  if(ms<TILT_MS){
+    fastStreak++;
+    if(fastStreak>=TILT_STREAK&&!tiltTriggered){
+      tiltTriggered=true;fireTilt();
+    }
+  } else {
+    fastStreak=0;
+  }
+}
+function fireTilt(){
+  var ov=document.getElementById('tilt-overlay');
+  ov.style.display='block';
+  setTimeout(function(){ov.style.display='none';},1000);
+  var bn=document.getElementById('tilt-banner');
+  bn.style.display='block';
+  setTimeout(function(){bn.style.display='none';},3500);
+}
+
+/* ── cell click ── */
+function cellClick(){
+  var idx=parseInt(this.dataset.idx);
+  var target=order[tileIdx];
+  var elapsed=Date.now()-tileStart;
+
+  if(idx===target){
+    checkTilt(elapsed);
+    var pts=Math.max(0,1000-Math.floor(elapsed/1000)*5-wrongCount*100);
+    score+=pts;totalCorrect++;
+    this.className='magnet correct';
+    this.onclick=null;
+    document.getElementById('h-score').textContent=score;
+    tileIdx++;
+    setTarget();
+  } else {
+    wrongCount++;totalWrong++;
+    document.getElementById('h-wrong').textContent=totalWrong;
+    updateWrongDots();
+    var cell=this;
+    cell.className='magnet';
+    void cell.offsetWidth;                /* reflow — restart animation */
+    cell.className='magnet wrong-flash';
+    setTimeout(function(){
+      if(cell.className==='magnet wrong-flash') cell.className='magnet';
+    },400);
+    if(wrongCount>=3) skipTile();
+  }
+}
+
+/* ── skip ── */
+function skipTile(){
+  var target=order[tileIdx];
+  var cell=cellMap[target];
+  cell.className='magnet skipped';
+  /* cell.textContent=INS[target][1].replace('\n',' / '); */
+  var pseudo = INS[target][0];
+  var real   = INS[target][1].replace('\n','<br>');
+  cell.style.whiteSpace='pre-line';
+  cell.style.fontSize='0.75em';
+  cell.textContent = INS[target][0] + '\n \n' + INS[target][1];
+  cell.onclick=null;
+  totalSkipped++;tileIdx++;
+  setTarget();
+}
+
+/* ── end ── */
+function endGame(){
+  clearInterval(timerID);
+  var secs=Math.floor((Date.now()-startTime)/1000);
+  finalTime=secs;
+  var bonus=secs<180?500:Math.max(0,500-(secs-180)*2);
+  finalScore=score+bonus;
+  if(tiltTriggered) finalScore=Math.floor(finalScore*0.8);
+  var acc=totalCorrect>0
+    ?Math.round(totalCorrect/(totalCorrect+totalWrong)*100):0;
+
+  hide('game');
+  document.getElementById('e-score').textContent  =finalScore;
+  document.getElementById('e-time').textContent   =fmt(secs);
+  document.getElementById('e-correct').textContent=totalCorrect+' / 30';
+  document.getElementById('e-wrong').textContent  =totalWrong;
+  document.getElementById('e-skipped').textContent=totalSkipped;
+  document.getElementById('e-acc').textContent    =acc+'%';
+  document.getElementById('name-input').value     ='';
+  document.getElementById('submit-msg').textContent='';
+  document.getElementById('btn-submit').disabled  =false;
+  document.getElementById('tilt-score-note').style.display=tiltTriggered?'block':'none';
+  show('endscreen');
+}
+
+/* ── submit ── */
+function submitScore(){
+  var name=document.getElementById('name-input').value.trim();
+  if(name.length!==3){
+    document.getElementById('submit-msg').textContent='ENTER EXACTLY 3 LETTERS';
+    return;
+  }
+  var acc=totalCorrect>0
+    ?Math.round(totalCorrect/(totalCorrect+totalWrong)*100):0;
+  document.getElementById('btn-submit').disabled=true;
+  document.getElementById('submit-msg').textContent='SUBMITTING...';
+
+  var body='name='+encodeURIComponent(name)
+          +'&score='+finalScore
+          +'&correct='+totalCorrect
+          +'&wrong='+totalWrong
+          +'&seconds='+finalTime
+          +'&acc='+acc
+          +'&tilt='+(tiltTriggered?'1':'0');
+
+  fetch('../cgi-bin/rvbingo/rvquiz_score.cgi',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:body
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.text();
+  })
+  .then(function(t){
+    document.getElementById('submit-msg').textContent=t.trim()||'SCORE SAVED';
+    setTimeout(function(){ showLB(); }, 1200);
+  })
+  .catch(function(e){
+    document.getElementById('submit-msg').textContent='SUBMIT FAILED — '+e.message;
+  });
+}
+
+/* ── leaderboard ── */
+function loadLB(){
+  document.getElementById('lb-msg').textContent='LOADING...';
+  document.getElementById('lb-table').style.display='none';
+  fetch('../cgi-bin/rvbingo/rvquiz_board.cgi')
+  .then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  })
+  .then(function(rows){
+    if(!rows||!rows.length){
+      document.getElementById('lb-msg').textContent='NO SCORES YET — BE FIRST';
+      return;
+    }
+    document.getElementById('lb-msg').textContent='';
+    var tb=document.getElementById('lb-body');
+    tb.innerHTML='';
+    rows.forEach(function(r,i){
+      var tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td class="lb-rank">'+(i+1)+'</td>'+
+        '<td class="lb-name">'+esc(r.name)+'</td>'+
+        '<td class="lb-score">'+r.score+'</td>'+
+        '<td class="lb-acc">'+r.acc+'%</td>'+
+        '<td class="lb-date">'+esc(r.date)+
+          (r.tilt?' <span class="lb-tilt">TILT</span>':'')+
+        '</td>';
+      tb.appendChild(tr);
+    });
+    document.getElementById('lb-table').style.display='table';
+  })
+  .catch(function(e){
+    document.getElementById('lb-msg').textContent='COULD NOT LOAD — '+e.message;
+  });
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
